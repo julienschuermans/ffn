@@ -1,4 +1,4 @@
-During my internship at FarrowLab/NERF I have adapted this code from Januszewski et al. to with optical microscopy images.
+During my internship at [FarrowLab/NERF](https://www.farrowlab.com) I have adapted this code from Januszewski et al. to work with optical microscopy images.
 
 # Flood-Filling Networks
 
