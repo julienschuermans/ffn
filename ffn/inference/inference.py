@@ -450,7 +450,10 @@ class Canvas(object):
       # Bias towards oversegmentation by making it impossible to reverse
       # disconnectedness predictions in the course of inference.
       if self.options.disco_seed_threshold >= 0:
-        th_max = logit(0.5)
+       
+        
+        th_min = logit(0.5)       
+        th_max = logit(0.01)      # JS 25/06/2019 
         old_seed = self.seed[sel]
 
         if self._keep_history:
@@ -463,7 +466,9 @@ class Canvas(object):
           # were previously uninitialized (i.e. set to NaN in old_seed).
           try:
             old_err = np.seterr(invalid='ignore')
-            mask = ((old_seed < th_max) & (logits > old_seed))
+            #mask = ((old_seed < th_max) & (logits > old_seed))
+            # This mask now excludes positions that had a **high** value in the previous iteration.
+            mask = (((old_seed < th_max) & (logits > old_seed)) | ((old_seed > th_min) & (logits < old_seed))) # JS 26/06/2019
           finally:
             np.seterr(**old_err)
           logits[mask] = old_seed[mask]
