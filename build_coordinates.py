@@ -82,9 +82,19 @@ def main(argv):
   logging.info('Resampling and shuffling coordinates.')
 
   max_count = max(totals.values())
+  
+  
+  # JS 25/06/2019
+  # use 2nd largest partition because the largest one (background pixels) is extremely big.
+  second_max_count = max(e for e in totals.values() if e != max_count)
+  logging.info("Training samples per partition: " + str(second_max_count))
+    
   indices = np.concatenate(
-      [np.resize(np.random.permutation(v), (max_count, 2)) for
+      [np.resize(np.random.permutation(v), (second_max_count, 2)) for
        v in indices.values()], axis=0)
+  
+  
+  
   np.random.shuffle(indices)
 
   logging.info('Saving coordinates.')
