@@ -284,3 +284,18 @@ class PolicyInvertOrigins(BaseSeedPolicy):
     points.sort(reverse=True)
     self.coords = np.array([origin_info.start_zyx for _, origin_info
                             in points])
+
+    
+# JS 25/06/2019
+class PolicyManual(BaseSeedPolicy):
+  """A single manually specified seed point."""
+
+  def __init__(self, canvas, points=[(0,0,0)], **kwargs):
+    super(PolicyManual, self).__init__(canvas, **kwargs)
+    self.points = points
+
+  def _init_coords(self):
+    self.coords = []
+    [z,y,x] = self.points #TODO adapt this to take in multiple seed points
+    self.coords.append((z, y, x))
+    self.coords = np.array(self.coords)
