@@ -1,3 +1,5 @@
+During my internship at FarrowLab/NERF I have adapted this code from Januszewski et al. to with optical microscopy images.
+
 # Flood-Filling Networks
 
 Flood-Filling Networks (FFNs) are a class of neural networks designed for
