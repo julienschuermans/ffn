@@ -59,6 +59,8 @@ from ffn.training import augmentation
 from ffn.training import optimizer
 # pylint: enable=unused-import
 
+import tensorflow.contrib.slim as slim
+
 FLAGS = flags.FLAGS
 
 # Options related to training data.
@@ -101,6 +103,7 @@ flags.DEFINE_integer('replica_step_delay', 300,
                      'replica.')
 flags.DEFINE_integer('summary_rate_secs', 120,
                      'How often to save summaries (in seconds).')
+flags.DEFINE_integer('device_ID', 1, 'Integer specifying which GPU to use for training.') # added by julien
 
 # FFN training options.
 flags.DEFINE_float('seed_pad', 0.05,
@@ -159,7 +162,7 @@ class EvalTracker(object):
         tf.nn.sigmoid_cross_entropy_with_logits(
             logits=self.eval_preds, labels=self.eval_labels))
     self.reset()
-    self.eval_threshold = logit(0.9)
+    self.eval_threshold = logit(0.9) #julien: was 0.9. voxels with a value higher than this threshold will be considered as labeled positive
     self.sess = None
     self._eval_shape = eval_shape
 
@@ -437,6 +440,7 @@ def define_data_input(model, queue_batch=None):
       min_after_dequeue=4 * FLAGS.batch_size,
       enqueue_many=True)
 
+
   return patches, labels, loss_weights, coord, volname
 
 
@@ -611,10 +615,15 @@ def save_flags():
         for flag in flag_list:
           f.write('%s\n' % flag.serialize())
 
+# added by julien
+def model_summary():
+    model_vars = tf.trainable_variables()
+    slim.model_analyzer.analyze_vars(model_vars, print_info=True)
 
 def train_ffn(model_cls, **model_kwargs):
   with tf.Graph().as_default():
-    with tf.device(tf.train.replica_device_setter(FLAGS.ps_tasks, merge_devices=True)):
+    #with tf.device(tf.train.replica_device_setter(FLAGS.ps_tasks, merge_devices=True)):
+    with tf.device("/device:GPU:" + str(FLAGS.device_ID)): #changed by julien to select a specific GPU
       # The constructor might define TF ops/placeholders, so it is important
       # that the FFN is instantiated within the current context.
       model = model_cls(**model_kwargs)
@@ -623,6 +632,9 @@ def train_ffn(model_cls, **model_kwargs):
       eval_tracker = EvalTracker(eval_shape_zyx)
       load_data_ops = define_data_input(model, queue_batch=1)
       prepare_ffn(model)
+
+      #model_summary() # added by julien
+
       merge_summaries_op = tf.summary.merge_all()
 
       if FLAGS.task == 0:
@@ -721,10 +733,14 @@ def main(argv=()):
   logging.info('Random seed: %r', seed)
   random.seed(seed)
 
+   # added by julien. forces tf to use a single GPU by making the other one invisible
+  os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+  os.environ["CUDA_VISIBLE_DEVICES"]=str(FLAGS.device_ID)
+
   train_ffn(model_class, batch_size=FLAGS.batch_size,
             **json.loads(FLAGS.model_args))
 
-
+#import cProfile
 if __name__ == '__main__':
   flags.mark_flag_as_required('train_coords')
   flags.mark_flag_as_required('data_volumes')
@@ -732,3 +748,4 @@ if __name__ == '__main__':
   flags.mark_flag_as_required('model_name')
   flags.mark_flag_as_required('model_args')
   app.run(main)
+  #cProfile.run('app.run(main)')
